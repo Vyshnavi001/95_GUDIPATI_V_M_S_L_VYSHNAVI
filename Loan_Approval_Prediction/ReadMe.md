@@ -90,9 +90,6 @@ A basic fairness analysis is performed by:
   - Education
   - Marital Status
 
-> Note: This is a preliminary fairness audit and not a full bias mitigation pipeline.
-
-
 ## API Deployment
 A **FastAPI** endpoint is provided to score loan applications.
 
@@ -105,3 +102,4 @@ A **FastAPI** endpoint is provided to score loan applications.
   "probability": 0.83,
   "top_factors": ["Credit_History", "ApplicantIncome", "LoanAmount"]
 }
+
