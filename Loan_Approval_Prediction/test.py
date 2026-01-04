@@ -8,16 +8,13 @@ import matplotlib.pyplot as plt
 # 1. LOAD MODEL & PREPROCESSORS
 model = xgb.XGBClassifier()
 model.load_model("xgboost_loan_model.json")
-
 encoders = joblib.load("encoders.pkl")
 feature_columns = joblib.load("feature_columns.pkl")
-
 print("Model and preprocessing objects loaded successfully\n")
 
 # 2. HELPER FUNCTIONS
 def normalize_input(value):
     return value.strip().lower()
-
 value_map = {
     "gender": {"male": "Male", "female": "Female"},
     "married": {"yes": "Yes", "no": "No"},
@@ -32,7 +29,6 @@ value_map = {
 
 # 3. TAKE USER INPUT
 print("Enter Loan Applicant Details:\n")
-
 user_data = {}
 user_data["Gender"] = value_map["gender"][normalize_input(input("Gender (Male/Female): "))]
 user_data["Married"] = value_map["married"][normalize_input(input("Married (Yes/No): "))]
@@ -54,7 +50,6 @@ categorical_cols = [
     'Gender', 'Married', 'Dependents',
     'Self_Employed', 'Education', 'Property_Area'
 ]
-
 for col in categorical_cols:
     input_df[col] = encoders[col].transform(input_df[col])
 
@@ -67,20 +62,16 @@ probability = model.predict_proba(input_df)[0][1]
 
 # 8. DISPLAY RESULT
 print("\nLoan Approval Result")
-
 if prediction == 1:
     print("Loan Status: APPROVED")
 else:
     print("Loan Status: REJECTED")
-
 print(f"Approval Probability: {probability:.2f}")
 
 # 9. SHAP WATERFALL EXPLANATION
 print("\nGenerating SHAP Waterfall Explanation...")
-
 explainer = shap.TreeExplainer(model)
 shap_values = explainer.shap_values(input_df)
-
 shap.waterfall_plot(
     shap.Explanation(
         values=shap_values[0],
@@ -89,5 +80,5 @@ shap.waterfall_plot(
         feature_names=input_df.columns
     )
 )
-
 plt.show()
+
