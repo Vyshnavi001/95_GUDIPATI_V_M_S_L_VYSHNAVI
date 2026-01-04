@@ -1,6 +1,4 @@
-# -----------------------------
 # IMPORTS
-# -----------------------------
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -11,15 +9,10 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, classification_report
-
-# -----------------------------
 # 1. LOAD DATASET
-# -----------------------------
 df = pd.read_csv("Dataset/train_u6lujuX_CVtuZ9i.csv")
 
-# -----------------------------
 # 2. HANDLE MISSING VALUES (NO inplace WARNING)
-# -----------------------------
 categorical_cols = [
     'Gender', 'Married', 'Dependents',
     'Self_Employed', 'Education', 'Property_Area'
@@ -34,20 +27,14 @@ for col in categorical_cols:
 
 for col in numerical_cols:
     df[col] = df[col].fillna(df[col].median())
-
-# -----------------------------
 # 3. ENCODE CATEGORICAL FEATURES
-# -----------------------------
 encoders = {}
 
 for col in categorical_cols:
     le = LabelEncoder()
     df[col] = le.fit_transform(df[col])
     encoders[col] = le   # store encoder for testing
-
-# -----------------------------
 # 4. SPLIT FEATURES & TARGET
-# -----------------------------
 X = df.drop(['Loan_ID', 'Loan_Status'], axis=1)
 y = df['Loan_Status'].map({'Y': 1, 'N': 0})
 
@@ -57,10 +44,7 @@ joblib.dump(X.columns.tolist(), "feature_columns.pkl")
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
-
-# -----------------------------
 # 5. TRAIN XGBOOST MODEL
-# -----------------------------
 model = xgb.XGBClassifier(
     n_estimators=200,
     max_depth=4,
@@ -72,17 +56,13 @@ model = xgb.XGBClassifier(
 
 model.fit(X_train, y_train)
 
-# -----------------------------
 # 6. MODEL EVALUATION
-# -----------------------------
 y_pred = model.predict(X_test)
 
 print("\nAccuracy:", accuracy_score(y_test, y_pred))
 print("\nClassification Report:\n", classification_report(y_test, y_pred))
 
-# -----------------------------
 # 7. SAVE TRAINED OBJECTS (FOR TESTING)
-# -----------------------------
 model.save_model("xgboost_loan_model.json")
 joblib.dump(encoders, "encoders.pkl")
 
@@ -90,11 +70,8 @@ joblib.dump(encoders, "encoders.pkl")
 X_train.to_csv("X_train.csv", index=False)
 y_train.to_csv("y_train.csv", index=False)
 
-print("\n✅ Model and preprocessing objects saved successfully")
-
-# -----------------------------
+print("\n Model and preprocessing objects saved successfully")
 # 8. SHAP EXPLAINABILITY
-# -----------------------------
 explainer = shap.TreeExplainer(model)
 shap_values = explainer.shap_values(X_test)
 
@@ -121,9 +98,7 @@ shap.waterfall_plot(
     )
 )
 
-# -----------------------------
 # 9. FAIRNESS QUICK CHECK (Gender)
-# -----------------------------
 df_fair = X_test.copy()
 df_fair["Loan_Status"] = y_test.values
 df_fair["Gender"] = df.loc[X_test.index, "Gender"]
