@@ -1,67 +1,56 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import xgboost as xgb
-import shap
-from sklearn.preprocessing import LabelEncoder
+import joblib
 
-# -----------------------------
-# 1. Load trained model
-# -----------------------------
+# 1. LOAD SAVED MODEL & OBJECTS
 model = xgb.XGBClassifier()
 model.load_model("xgboost_loan_model.json")
 
-# -----------------------------
-# 2. Load test dataset
-# -----------------------------
-test_df = pd.read_csv("Dataset/test_Y3wMUE5_7gLdaTN.csv")
+encoders = joblib.load("encoders.pkl")
+feature_columns = joblib.load("feature_columns.pkl")
 
-print("Test Data Loaded Successfully")
-print(test_df.head())
+print("Model and preprocessing objects loaded successfully\n")
 
-# -----------------------------
-# 3. Handle missing values
-# -----------------------------
-categorical_cols = ['Gender', 'Married', 'Dependents',
-                    'Self_Employed', 'Education', 'Property_Area']
+# 2. TAKE USER INPUT
+print("Enter Loan Applicant Details:\n")
 
-numerical_cols = ['LoanAmount', 'Loan_Amount_Term', 'Credit_History']
+user_data = {}
+
+user_data["Gender"] = input("Gender (Male/Female): ")
+user_data["Married"] = input("Married (Yes/No): ")
+user_data["Dependents"] = input("Dependents (0 / 1 / 2 / 3+): ")
+user_data["Education"] = input("Education (Graduate/Not Graduate): ")
+user_data["Self_Employed"] = input("Self Employed (Yes/No): ")
+user_data["ApplicantIncome"] = float(input("Applicant Income: "))
+user_data["CoapplicantIncome"] = float(input("Coapplicant Income: "))
+user_data["LoanAmount"] = float(input("Loan Amount: "))
+user_data["Loan_Amount_Term"] = float(input("Loan Amount Term (in months): "))
+user_data["Credit_History"] = float(input("Credit History (1 = Good, 0 = Bad): "))
+user_data["Property_Area"] = input("Property Area (Urban/Semiurban/Rural): ")
+
+# 3. CONVERT INPUT TO DATAFRAME
+input_df = pd.DataFrame([user_data])
+# 4. APPLY ENCODING
+categorical_cols = [
+    'Gender', 'Married', 'Dependents',
+    'Self_Employed', 'Education', 'Property_Area'
+]
 
 for col in categorical_cols:
-    test_df[col].fillna(test_df[col].mode()[0], inplace=True)
+    input_df[col] = encoders[col].transform(input_df[col])
+# 5. ENSURE FEATURE ORDER
+input_df = input_df[feature_columns]
+# 6. MAKE PREDICTION
+prediction = model.predict(input_df)[0]
+probability = model.predict_proba(input_df)[0][1]
+# 7. DISPLAY RESULT
+print("\n Loan Approval Result")
+print("----------------------")
 
-for col in numerical_cols:
-    test_df[col].fillna(test_df[col].median(), inplace=True)
+if prediction == 1:
+    print(" Loan Status: APPROVED")
+else:
+    print(" Loan Status: REJECTED")
 
-# -----------------------------
-# 4. Encode categorical features
-# -----------------------------
-le = LabelEncoder()
-for col in categorical_cols:
-    test_df[col] = le.fit_transform(test_df[col])
-
-# -----------------------------
-# 5. Prepare test features
-# -----------------------------
-X_test = test_df.drop('Loan_ID', axis=1)
-
-# -----------------------------
-# 6. Make predictions
-# -----------------------------
-predictions = model.predict(X_test)
-probabilities = model.predict_proba(X_test)[:, 1]
-
-# Convert numeric output to labels
-test_df['Loan_Status_Predicted'] = np.where(predictions == 1, 'Approved', 'Rejected')
-test_df['Approval_Probability'] = probabilities
-
-# -----------------------------
-# 7. Display results
-# -----------------------------
-print("\nPrediction Results:")
-print(test_df[['Loan_ID', 'Loan_Status_Predicted', 'Approval_Probability']].head())
-
-# -----------------------------
-# 8. Save predictions
-# -----------------------------
-test_df.to_csv("loan_test_predictions.csv", index=False)
-print("\nPredictions saved to loan_test_predictions.csv")
+print(f" Approval Probability: {probability:.2f}")
